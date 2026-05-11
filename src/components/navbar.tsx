@@ -76,7 +76,7 @@ export function Navbar() {
         <div className="flex items-center gap-3">
           <UserProfile />
           <Button asChild size="sm" className="hidden sm:inline-flex">
-            <Link href="/studio">Start Creating</Link>
+            <Link href="/dashboard/generate">Start Creating</Link>
           </Button>
         </div>
       </nav>

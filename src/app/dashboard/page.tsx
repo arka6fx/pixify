@@ -1,79 +1,116 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
-import { Lock } from "lucide-react";
-import { UserProfile } from "@/components/auth/user-profile";
-import { Button } from "@/components/ui/button";
-import { useDiagnostics } from "@/hooks/use-diagnostics";
+import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import { Sparkles, Briefcase, SwatchBook } from "lucide-react";
+import { ThumbnailCard } from "@/components/dashboard/thumbnail-card";
+import { WelcomeHeader } from "@/components/dashboard/welcome-header";
+import { Spinner } from "@/components/ui/spinner";
 import { useSession } from "@/lib/auth-client";
+import { staggerContainer, staggerChild } from "@/lib/motion";
+import { MOCK_THUMBNAILS } from "@/lib/types";
 
 export default function DashboardPage() {
   const { data: session, isPending } = useSession();
-  const { isAiReady, loading: diagnosticsLoading } = useDiagnostics();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isPending && !session) {
+      router.replace("/login");
+    }
+  }, [isPending, session, router]);
 
   if (isPending) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        Loading...
+      <div className="h-svh flex items-center justify-center bg-background">
+        <Spinner className="h-6 w-6 text-primary" />
       </div>
     );
   }
 
-  if (!session) {
-    return (
-      <div className="container mx-auto px-4 py-12">
-        <div className="max-w-3xl mx-auto text-center">
-          <div className="mb-8">
-            <Lock className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-            <h1 className="text-2xl font-bold mb-2">Protected Page</h1>
-            <p className="text-muted-foreground mb-6">
-              You need to sign in to access the dashboard
-            </p>
-          </div>
-          <UserProfile />
-        </div>
-      </div>
-    );
-  }
+  if (!session) return null;
+
+  const recentThumbnails = MOCK_THUMBNAILS.slice(0, 4);
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-      </div>
+    <motion.div
+      variants={staggerContainer}
+      initial="hidden"
+      animate="visible"
+      className="p-6 space-y-8"
+    >
+      <motion.div variants={staggerChild}>
+        <WelcomeHeader />
+      </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="p-6 border border-border rounded-lg">
-          <h2 className="text-xl font-semibold mb-2">AI Chat</h2>
-          <p className="text-muted-foreground mb-4">
-            Start a conversation with AI using the Vercel AI SDK
-          </p>
-          {(diagnosticsLoading || !isAiReady) ? (
-            <Button disabled={true}>
-              Go to Chat
-            </Button>
-          ) : (
-            <Button asChild>
-              <Link href="/chat">Go to Chat</Link>
-            </Button>
-          )}
+      <motion.div variants={staggerChild} className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-foreground">Recent Generations</h2>
+          <Link
+            href="/dashboard/generations"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-150"
+          >
+            View all
+          </Link>
         </div>
+        <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
+          {recentThumbnails.map((thumbnail) => (
+            <ThumbnailCard key={thumbnail.id} thumbnail={thumbnail} />
+          ))}
+        </div>
+      </motion.div>
 
-        <div className="p-6 border border-border rounded-lg">
-          <h2 className="text-xl font-semibold mb-2">Profile</h2>
-          <p className="text-muted-foreground mb-4">
-            Manage your account settings and preferences
-          </p>
-          <div className="space-y-2">
-            <p>
-              <strong>Name:</strong> {session.user.name}
-            </p>
-            <p>
-              <strong>Email:</strong> {session.user.email}
-            </p>
-          </div>
+      <motion.div variants={staggerChild} className="space-y-4">
+        <h2 className="text-lg font-semibold text-foreground">Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Link
+            href="/dashboard/generate"
+            className="bg-card border border-border rounded-xl p-6 flex flex-col gap-3 hover:border-border/60 transition-colors duration-200 group"
+          >
+            <Sparkles className="h-5 w-5 text-primary" aria-hidden="true" />
+            <div>
+              <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors duration-200">
+                New Generation
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                Create a new AI thumbnail
+              </p>
+            </div>
+          </Link>
+
+          <Link
+            href="/dashboard/assets"
+            className="bg-card border border-border rounded-xl p-6 flex flex-col gap-3 hover:border-border/60 transition-colors duration-200 group"
+          >
+            <Briefcase className="h-5 w-5 text-primary" aria-hidden="true" />
+            <div>
+              <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors duration-200">
+                Brand Assets
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                Manage logos and overlays
+              </p>
+            </div>
+          </Link>
+
+          <Link
+            href="/dashboard/templates"
+            className="bg-card border border-border rounded-xl p-6 flex flex-col gap-3 hover:border-border/60 transition-colors duration-200 group"
+          >
+            <SwatchBook className="h-5 w-5 text-primary" aria-hidden="true" />
+            <div>
+              <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors duration-200">
+                Templates
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                Browse starter layouts
+              </p>
+            </div>
+          </Link>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

@@ -85,7 +85,7 @@ export function Hero() {
           className="flex flex-col items-center gap-3 sm:flex-row"
         >
           <Button asChild size="lg" className="px-8 text-base">
-            <Link href="/studio">Start Creating</Link>
+            <Link href="/dashboard/generate">Start Creating</Link>
           </Button>
           <Button
             asChild

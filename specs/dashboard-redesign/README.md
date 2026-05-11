@@ -42,7 +42,7 @@ graph TD
 - [x] [task-02-shared-types-and-mock-data.md](./tasks/task-02-shared-types-and-mock-data.md) — Domain types and placeholder datasets
 
 ### Wave 2
-- [ ] [task-03-overview-page.md](./tasks/task-03-overview-page.md) — Overview/home page with stats, recent generations, quick actions
-- [ ] [task-04-generator-page.md](./tasks/task-04-generator-page.md) — Full AI thumbnail generator with prompt, uploads, styles, preview
-- [ ] [task-05-generations-page.md](./tasks/task-05-generations-page.md) — Thumbnail gallery grid page
-- [ ] [task-06-landing-page-updates-and-cleanup.md](./tasks/task-06-landing-page-updates-and-cleanup.md) — Update CTAs, redirect /studio, remove old components
+- [x] [task-03-overview-page.md](./tasks/task-03-overview-page.md) — Overview/home page with stats, recent generations, quick actions
+- [x] [task-04-generator-page.md](./tasks/task-04-generator-page.md) — Full AI thumbnail generator with prompt, uploads, styles, preview
+- [x] [task-05-generations-page.md](./tasks/task-05-generations-page.md) — Thumbnail gallery grid page
+- [x] [task-06-landing-page-updates-and-cleanup.md](./tasks/task-06-landing-page-updates-and-cleanup.md) — Update CTAs, redirect /studio, remove old components
