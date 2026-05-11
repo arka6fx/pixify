@@ -9,8 +9,8 @@ import { ThumbnailGrid } from "@/components/dashboard/thumbnail-grid";
 import { Spinner } from "@/components/ui/spinner";
 import { useSession } from "@/lib/auth-client";
 import { staggerContainer, staggerChild } from "@/lib/motion";
-import { MOCK_THUMBNAILS } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import type { Thumbnail } from "@/lib/types";
 
 export default function GenerationsPage() {
   const { data: session, isPending } = useSession();
@@ -18,6 +18,7 @@ export default function GenerationsPage() {
   const [mounted, setMounted] = useState(false);
   const initialized = useRef(false);
   const [filter, setFilter] = useState<"all" | "favorites">("all");
+  const [thumbnails, setThumbnails] = useState<Thumbnail[]>([]);
 
   useEffect(() => {
     if (!initialized.current) {
@@ -29,9 +30,22 @@ export default function GenerationsPage() {
     }
   }, [isPending, session, router]);
 
+  useEffect(() => {
+    async function fetchThumbnails() {
+      try {
+        const res = await fetch("/api/thumbnails");
+        const data = await res.json();
+        setThumbnails(data);
+      } catch {
+        // keep empty
+      }
+    }
+    if (session) fetchThumbnails();
+  }, [session]);
+
   const filtered = filter === "all"
-    ? MOCK_THUMBNAILS
-    : MOCK_THUMBNAILS.filter((t) => t.isFavorite);
+    ? thumbnails
+    : thumbnails.filter((t) => t.isFavorite);
 
   if (!mounted || isPending) {
     return (
@@ -84,7 +98,7 @@ export default function GenerationsPage() {
 
       <motion.div variants={staggerChild}>
         {filtered.length > 0 ? (
-          <ThumbnailGrid thumbnails={filtered} />
+          <ThumbnailGrid thumbnails={filtered} onUpdate={() => {}} />
         ) : (
           <EmptyState
             icon={<ImageIcon className="h-12 w-12" aria-hidden="true" />}

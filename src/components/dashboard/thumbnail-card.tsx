@@ -6,11 +6,12 @@ import { Heart, Download, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { staggerChild } from "@/lib/motion";
+import { toast } from "sonner";
 import type { Thumbnail } from "@/lib/types";
 
 function formatRelativeTime(date: Date): string {
   const now = Date.now();
-  const diff = now - date.getTime();
+  const diff = now - new Date(date).getTime();
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
   if (days === 0) return "Today";
@@ -24,7 +25,43 @@ function formatRelativeTime(date: Date): string {
   return `${months}mo ago`;
 }
 
-export function ThumbnailCard({ thumbnail }: { thumbnail: Thumbnail }) {
+export function ThumbnailCard({ thumbnail, onUpdate }: { thumbnail: Thumbnail; onUpdate: () => void; }) {
+  const handleFavorite = async () => {
+    try {
+      const res = await fetch(`/api/thumbnails/${thumbnail.id}/favorite`, { method: "PATCH" });
+      if (!res.ok) throw new Error("Failed");
+      onUpdate?.();
+    } catch {
+      toast.error("Failed to toggle favorite.");
+    }
+  };
+
+  const handleDownload = async () => {
+    try {
+      const res = await fetch(thumbnail.imageUrl);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `thumbnail-${thumbnail.id}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Download failed.");
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      const res = await fetch(`/api/thumbnails/${thumbnail.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed");
+      onUpdate?.();
+      toast.success("Thumbnail deleted.");
+    } catch {
+      toast.error("Delete failed.");
+    }
+  };
+
   return (
     <motion.div
       variants={staggerChild}
@@ -39,13 +76,13 @@ export function ThumbnailCard({ thumbnail }: { thumbnail: Thumbnail }) {
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
         />
         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity duration-200">
-          <Button variant="ghost" size="icon" className="text-white hover:text-white" aria-label="Favorite">
-            <Heart className="h-4 w-4" />
+          <Button variant="ghost" size="icon" className="text-white hover:text-white" aria-label="Favorite" onClick={handleFavorite}>
+            <Heart className={`h-4 w-4 ${thumbnail.isFavorite ? "fill-red-500 text-red-500" : ""}`} />
           </Button>
-          <Button variant="ghost" size="icon" className="text-white hover:text-white" aria-label="Download">
+          <Button variant="ghost" size="icon" className="text-white hover:text-white" aria-label="Download" onClick={handleDownload}>
             <Download className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="text-white hover:text-white" aria-label="Delete">
+          <Button variant="ghost" size="icon" className="text-white hover:text-white" aria-label="Delete" onClick={handleDelete}>
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>

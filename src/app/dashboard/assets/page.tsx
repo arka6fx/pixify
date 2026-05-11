@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -10,8 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useSession } from "@/lib/auth-client";
 import { staggerContainer, staggerChild } from "@/lib/motion";
-import { MOCK_ASSETS, type AssetType } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import type { BrandAsset, AssetType } from "@/lib/types";
 
 type FilterTab = "all" | AssetType;
 
@@ -30,7 +31,7 @@ function formatFileSize(kb: number): string {
 }
 
 function formatDate(date: Date): string {
-  const diff = Date.now() - date.getTime();
+  const diff = Date.now() - new Date(date).getTime();
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   if (days === 0) return "Today";
   if (days === 1) return "Yesterday";
@@ -44,6 +45,8 @@ export default function AssetsPage() {
   const [mounted, setMounted] = useState(false);
   const initialized = useRef(false);
   const [filter, setFilter] = useState<FilterTab>("all");
+  const [assets, setAssets] = useState<BrandAsset[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!initialized.current) {
@@ -52,6 +55,64 @@ export default function AssetsPage() {
     }
     if (!isPending && !session) router.replace("/login");
   }, [isPending, session, router]);
+
+  useEffect(() => {
+    async function fetchAssets() {
+      try {
+        const res = await fetch("/api/assets");
+        const data = await res.json();
+        setAssets(data);
+      } catch {
+        // keep empty
+      }
+    }
+    if (session) fetchAssets();
+  }, [session]);
+
+  const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.set("file", file);
+    formData.set("type", "asset");
+    formData.set("name", file.name);
+    try {
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      if (!res.ok) throw new Error("Upload failed");
+      const data = await res.json();
+      setAssets((prev) => [data, ...prev]);
+      toast.success("Asset uploaded successfully!");
+    } catch {
+      toast.error("Upload failed.");
+    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }, []);
+
+  const handleDelete = useCallback(async (id: string) => {
+    try {
+      const res = await fetch(`/api/assets/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Delete failed");
+      setAssets((prev) => prev.filter((a) => a.id !== id));
+      toast.success("Asset deleted.");
+    } catch {
+      toast.error("Delete failed.");
+    }
+  }, []);
+
+  const handleDownload = useCallback(async (url: string, name: string) => {
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      toast.error("Download failed.");
+    }
+  }, []);
 
   if (!mounted || isPending) {
     return (
@@ -63,9 +124,9 @@ export default function AssetsPage() {
 
   if (!session) return null;
 
-  const assets = filter === "all"
-    ? MOCK_ASSETS
-    : MOCK_ASSETS.filter((a) => a.type === filter);
+  const filteredAssets = filter === "all"
+    ? assets
+    : assets.filter((a) => a.type === filter);
 
   return (
     <motion.div
@@ -81,10 +142,17 @@ export default function AssetsPage() {
             Logos, icons, overlays, and brand kits for your thumbnails.
           </p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={() => fileInputRef.current?.click()}>
           <Upload className="h-4 w-4" aria-hidden="true" />
           Upload Asset
         </Button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleUpload}
+          className="hidden"
+        />
       </motion.div>
 
       <motion.div variants={staggerChild} className="flex gap-2 flex-wrap">
@@ -106,7 +174,7 @@ export default function AssetsPage() {
         ))}
       </motion.div>
 
-      {assets.length === 0 ? (
+      {filteredAssets.length === 0 ? (
         <motion.div variants={staggerChild} className="flex flex-col items-center justify-center py-24 text-center">
           <p className="text-sm text-muted-foreground">No assets in this category yet.</p>
         </motion.div>
@@ -115,7 +183,7 @@ export default function AssetsPage() {
           variants={staggerChild}
           className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"
         >
-          {assets.map((asset) => (
+          {filteredAssets.map((asset) => (
             <motion.div
               key={asset.id}
               variants={staggerChild}
@@ -130,10 +198,22 @@ export default function AssetsPage() {
                   sizes="(max-width: 640px) 50vw, 25vw"
                 />
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:text-white hover:bg-white/20" aria-label="Download">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-white hover:text-white hover:bg-white/20"
+                    aria-label="Download"
+                    onClick={() => handleDownload(asset.imageUrl, asset.name)}
+                  >
                     <Download className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:text-white hover:bg-white/20" aria-label="Delete">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-white hover:text-white hover:bg-white/20"
+                    aria-label="Delete"
+                    onClick={() => handleDelete(asset.id)}
+                  >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>

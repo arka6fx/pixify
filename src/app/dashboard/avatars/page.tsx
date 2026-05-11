@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -10,14 +10,16 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useSession } from "@/lib/auth-client";
 import { staggerContainer, staggerChild } from "@/lib/motion";
-import { MOCK_AVATARS } from "@/lib/types";
+import { toast } from "sonner";
+import type { CreatorAvatar } from "@/lib/types";
 
 export default function AvatarsPage() {
   const { data: session, isPending } = useSession();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const initialized = useRef(false);
-  const [avatars, setAvatars] = useState(MOCK_AVATARS);
+  const [avatars, setAvatars] = useState<CreatorAvatar[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!initialized.current) {
@@ -26,6 +28,62 @@ export default function AvatarsPage() {
     }
     if (!isPending && !session) router.replace("/login");
   }, [isPending, session, router]);
+
+  const fetchAvatars = useCallback(async () => {
+    try {
+      const res = await fetch("/api/avatars");
+      const data = await res.json();
+      setAvatars(data);
+    } catch {
+      // keep empty
+    }
+  }, []);
+
+  useEffect(() => {
+    if (session) fetchAvatars();
+  }, [session, fetchAvatars]);
+
+  const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.set("file", file);
+    formData.set("name", file.name);
+    try {
+      const res = await fetch("/api/avatars", { method: "POST", body: formData });
+      if (!res.ok) throw new Error("Upload failed");
+      toast.success("Avatar uploaded!");
+      fetchAvatars();
+    } catch {
+      toast.error("Upload failed.");
+    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }, [fetchAvatars]);
+
+  const handleSetDefault = useCallback(async (id: string) => {
+    try {
+      const res = await fetch(`/api/avatars/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isDefault: true }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      fetchAvatars();
+    } catch {
+      toast.error("Failed to set default avatar.");
+    }
+  }, [fetchAvatars]);
+
+  const handleDelete = useCallback(async (id: string) => {
+    try {
+      const res = await fetch(`/api/avatars/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Delete failed");
+      setAvatars((prev) => prev.filter((a) => a.id !== id));
+      toast.success("Avatar deleted.");
+    } catch {
+      toast.error("Delete failed.");
+    }
+  }, []);
 
   if (!mounted || isPending) {
     return (
@@ -36,16 +94,6 @@ export default function AvatarsPage() {
   }
 
   if (!session) return null;
-
-  const handleSetDefault = (id: string) => {
-    setAvatars((prev) =>
-      prev.map((a) => ({ ...a, isDefault: a.id === id }))
-    );
-  };
-
-  const handleDelete = (id: string) => {
-    setAvatars((prev) => prev.filter((a) => a.id !== id));
-  };
 
   return (
     <motion.div
@@ -61,10 +109,17 @@ export default function AvatarsPage() {
             Manage your personal avatars and reference images.
           </p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={() => fileInputRef.current?.click()}>
           <Upload className="h-4 w-4" aria-hidden="true" />
           Upload Avatar
         </Button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleUpload}
+          className="hidden"
+        />
       </motion.div>
 
       {avatars.length === 0 ? (

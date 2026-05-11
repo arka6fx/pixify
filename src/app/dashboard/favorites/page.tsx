@@ -9,13 +9,14 @@ import { ThumbnailGrid } from "@/components/dashboard/thumbnail-grid";
 import { Spinner } from "@/components/ui/spinner";
 import { useSession } from "@/lib/auth-client";
 import { staggerContainer, staggerChild } from "@/lib/motion";
-import { MOCK_THUMBNAILS } from "@/lib/types";
+import type { Thumbnail } from "@/lib/types";
 
 export default function FavoritesPage() {
   const { data: session, isPending } = useSession();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const initialized = useRef(false);
+  const [thumbnails, setThumbnails] = useState<Thumbnail[]>([]);
 
   useEffect(() => {
     if (!initialized.current) {
@@ -24,6 +25,19 @@ export default function FavoritesPage() {
     }
     if (!isPending && !session) router.replace("/login");
   }, [isPending, session, router]);
+
+  useEffect(() => {
+    async function fetchFavorites() {
+      try {
+        const res = await fetch("/api/thumbnails?favorites=true");
+        const data = await res.json();
+        setThumbnails(data);
+      } catch {
+        // keep empty
+      }
+    }
+    if (session) fetchFavorites();
+  }, [session]);
 
   if (!mounted || isPending) {
     return (
@@ -34,8 +48,6 @@ export default function FavoritesPage() {
   }
 
   if (!session) return null;
-
-  const favorites = MOCK_THUMBNAILS.filter((t) => t.isFavorite);
 
   return (
     <motion.div
@@ -52,8 +64,8 @@ export default function FavoritesPage() {
       </motion.div>
 
       <motion.div variants={staggerChild}>
-        {favorites.length > 0 ? (
-          <ThumbnailGrid thumbnails={favorites} />
+        {thumbnails.length > 0 ? (
+          <ThumbnailGrid thumbnails={thumbnails} onUpdate={() => {}} />
         ) : (
           <EmptyState
             icon={<Heart className="h-16 w-16" />}

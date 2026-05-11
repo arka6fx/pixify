@@ -12,14 +12,15 @@ import { UploadDropzone } from "@/components/dashboard/upload-dropzone";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useSession } from "@/lib/auth-client";
+import { toast } from "sonner";
 import type { StylePreset } from "@/lib/types";
 
-const MOCK_VARIATIONS = [
-  "https://picsum.photos/seed/var1/960/540",
-  "https://picsum.photos/seed/var2/960/540",
-  "https://picsum.photos/seed/var3/960/540",
-  "https://picsum.photos/seed/var4/960/540",
-];
+interface ThumbnailResult {
+  id: string;
+  imageUrl: string;
+  prompt: string;
+  style: string;
+}
 
 export default function GeneratePage() {
   const { data: session, isPending } = useSession();
@@ -29,12 +30,14 @@ export default function GeneratePage() {
 
   const [prompt, setPrompt] = useState("");
   const [selectedStyle, setSelectedStyle] = useState<StylePreset | null>(null);
+  const [avatarId, setAvatarId] = useState<string | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [assetPreview, setAssetPreview] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [variations, setVariations] = useState<string[]>([]);
   const [selectedVariation, setSelectedVariation] = useState(0);
+  const [thumbnails, setThumbnails] = useState<ThumbnailResult[]>([]);
 
   useEffect(() => {
     if (!initialized.current) {
@@ -46,20 +49,109 @@ export default function GeneratePage() {
     }
   }, [isPending, session, router]);
 
-  const handleGenerate = useCallback(() => {
-    if (!prompt.trim() || isGenerating) return;
+  const handleAvatarUpload = useCallback(async (file: File) => {
+    const formData = new FormData();
+    formData.set("file", file);
+    formData.set("type", "avatar");
+    formData.set("name", file.name);
+    try {
+      const res = await fetch("/api/avatars", { method: "POST", body: formData });
+      if (!res.ok) throw new Error("Upload failed");
+      const { id } = await res.json();
+      setAvatarId(id);
+      setAvatarPreview(URL.createObjectURL(file));
+    } catch {
+      toast.error("Upload failed. Please try again.");
+    }
+  }, []);
+
+  const handleAssetUpload = useCallback(async (file: File) => {
+    const formData = new FormData();
+    formData.set("file", file);
+    formData.set("type", "asset");
+    formData.set("name", file.name);
+    try {
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      if (!res.ok) throw new Error("Upload failed");
+      setAssetPreview(URL.createObjectURL(file));
+    } catch {
+      toast.error("Upload failed. Please try again.");
+    }
+  }, []);
+
+  const handleGenerate = useCallback(async () => {
+    if (!prompt.trim() || !selectedStyle || isGenerating) return;
 
     setIsGenerating(true);
     setPreviewUrl(null);
     setVariations([]);
 
-    setTimeout(() => {
-      setPreviewUrl("https://picsum.photos/seed/generated/960/540");
-      setVariations(MOCK_VARIATIONS);
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: prompt.trim(),
+          style: selectedStyle,
+          avatarId,
+        }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        toast.error(errorData.error || "Generation failed. Please try again.");
+        setIsGenerating(false);
+        return;
+      }
+
+      const data = await res.json();
+      const results: ThumbnailResult[] = data.thumbnails;
+
+      setThumbnails(results);
+      if (results.length > 0) {
+        const first = results[0]!;
+        setPreviewUrl(first.imageUrl);
+        setVariations(results.map((t: ThumbnailResult) => t.imageUrl));
+      }
       setSelectedVariation(0);
+    } catch {
+      toast.error("Network error. Please check your connection.");
+    } finally {
       setIsGenerating(false);
-    }, 2000);
-  }, [prompt, isGenerating]);
+    }
+  }, [prompt, selectedStyle, avatarId, isGenerating]);
+
+  const handleVariationSelect = useCallback((index: number) => {
+    setSelectedVariation(index);
+    setPreviewUrl(thumbnails[index]?.imageUrl ?? null);
+  }, [thumbnails]);
+
+  const handleRegenerate = useCallback(async () => {
+    await handleGenerate();
+  }, [handleGenerate]);
+
+  const handleDownload = useCallback(async () => {
+    if (!previewUrl) return;
+    try {
+      const res = await fetch(previewUrl);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `thumbnail-${Date.now()}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Download failed.");
+    }
+  }, [previewUrl]);
+
+  const handleShare = useCallback(async () => {
+    if (previewUrl) {
+      await navigator.clipboard.writeText(previewUrl);
+      toast.success("Image URL copied to clipboard!");
+    }
+  }, [previewUrl]);
 
   if (!mounted || isPending) {
     return (
@@ -87,14 +179,14 @@ export default function GeneratePage() {
         <UploadDropzone
           label="Avatar/Reference"
           accept="image/*"
-          onUpload={(file) => setAvatarPreview(URL.createObjectURL(file))}
+          onUpload={handleAvatarUpload}
           previewUrl={avatarPreview}
-          onRemove={() => setAvatarPreview(null)}
+          onRemove={() => { setAvatarPreview(null); setAvatarId(null); }}
         />
         <UploadDropzone
           label="Brand Assets"
           accept="image/*"
-          onUpload={(file) => setAssetPreview(URL.createObjectURL(file))}
+          onUpload={handleAssetUpload}
           previewUrl={assetPreview}
           onRemove={() => setAssetPreview(null)}
         />
@@ -104,7 +196,7 @@ export default function GeneratePage() {
         />
         <Button
           className="w-full gap-2"
-          disabled={!prompt.trim() || isGenerating}
+          disabled={!prompt.trim() || !selectedStyle || isGenerating}
           onClick={handleGenerate}
         >
           <Sparkles className="h-4 w-4" aria-hidden="true" />
@@ -115,12 +207,15 @@ export default function GeneratePage() {
         <GenerationPreview
           imageUrl={previewUrl}
           isLoading={isGenerating}
+          onDownload={handleDownload}
+          onShare={handleShare}
         />
         {variations.length > 0 && (
           <GenerationVariations
             variations={variations}
             selectedIndex={selectedVariation}
-            onSelect={setSelectedVariation}
+            onSelect={handleVariationSelect}
+            onRegenerate={handleRegenerate}
           />
         )}
       </div>

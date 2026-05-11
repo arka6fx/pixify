@@ -12,8 +12,8 @@ export function GenerationPreview({
 }: {
   imageUrl: string | null;
   isLoading: boolean;
-  onDownload?: () => void;
-  onShare?: () => void;
+  onDownload?: () => void | Promise<void>;
+  onShare?: () => void | Promise<void>;
 }) {
   return (
     <div className="flex flex-col items-center justify-center gap-6 p-8">

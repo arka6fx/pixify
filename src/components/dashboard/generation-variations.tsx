@@ -14,7 +14,7 @@ export function GenerationVariations({
   variations: string[];
   selectedIndex: number;
   onSelect: (index: number) => void;
-  onRegenerate?: () => void;
+  onRegenerate?: () => void | Promise<void>;
 }) {
   return (
     <div className="w-full max-w-3xl space-y-3">

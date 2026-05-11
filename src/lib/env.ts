@@ -18,6 +18,7 @@ const serverEnvSchema = z.object({
   GOOGLE_CLIENT_SECRET: z.string().optional(),
 
   // AI
+  OPENAI_API_KEY: z.string().optional(),
   OPENROUTER_API_KEY: z.string().optional(),
   OPENROUTER_MODEL: z.string().default("openai/gpt-5-mini"),
 
@@ -98,6 +99,10 @@ export function checkEnv(): void {
   // Check optional variables and warn
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
     warnings.push("Google OAuth is not configured. Social login will be disabled.");
+  }
+
+  if (!process.env.OPENAI_API_KEY) {
+    warnings.push("OPENAI_API_KEY is not set. AI image generation will not work.");
   }
 
   if (!process.env.OPENROUTER_API_KEY) {

@@ -10,13 +10,14 @@ import { WelcomeHeader } from "@/components/dashboard/welcome-header";
 import { Spinner } from "@/components/ui/spinner";
 import { useSession } from "@/lib/auth-client";
 import { staggerContainer, staggerChild } from "@/lib/motion";
-import { MOCK_THUMBNAILS } from "@/lib/types";
+import type { Thumbnail } from "@/lib/types";
 
 export default function DashboardPage() {
   const { data: session, isPending } = useSession();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const initialized = useRef(false);
+  const [recentThumbnails, setRecentThumbnails] = useState<Thumbnail[]>([]);
 
   useEffect(() => {
     if (!initialized.current) {
@@ -28,6 +29,19 @@ export default function DashboardPage() {
     }
   }, [isPending, session, router]);
 
+  useEffect(() => {
+    async function fetchRecent() {
+      try {
+        const res = await fetch("/api/thumbnails");
+        const data = await res.json();
+        setRecentThumbnails(data.slice(0, 4));
+      } catch {
+        // keep empty
+      }
+    }
+    if (session) fetchRecent();
+  }, [session]);
+
   if (!mounted || isPending) {
     return (
       <div className="flex-1 flex items-center justify-center bg-background">
@@ -37,8 +51,6 @@ export default function DashboardPage() {
   }
 
   if (!session) return null;
-
-  const recentThumbnails = MOCK_THUMBNAILS.slice(0, 4);
 
   return (
     <motion.div
@@ -63,7 +75,7 @@ export default function DashboardPage() {
         </div>
         <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
           {recentThumbnails.map((thumbnail) => (
-            <ThumbnailCard key={thumbnail.id} thumbnail={thumbnail} />
+            <ThumbnailCard key={thumbnail.id} thumbnail={thumbnail} onUpdate={() => {}} />
           ))}
         </div>
       </motion.div>
