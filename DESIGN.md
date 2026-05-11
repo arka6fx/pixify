@@ -179,7 +179,7 @@ import { Button } from "@/components/ui/button";
 
 // As link
 <Button asChild>
-  <Link href="/studio">Open Studio</Link>
+  <Link href="/dashboard/generate">Open Generator</Link>
 </Button>
 ```
 

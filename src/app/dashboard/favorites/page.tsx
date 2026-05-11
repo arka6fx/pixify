@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Heart } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/dashboard/empty-state";
+import { ThumbnailGrid } from "@/components/dashboard/thumbnail-grid";
 import { Spinner } from "@/components/ui/spinner";
 import { useSession } from "@/lib/auth-client";
 import { staggerContainer, staggerChild } from "@/lib/motion";
+import { MOCK_THUMBNAILS } from "@/lib/types";
 
 export default function FavoritesPage() {
   const { data: session, isPending } = useSession();
@@ -34,22 +35,33 @@ export default function FavoritesPage() {
 
   if (!session) return null;
 
+  const favorites = MOCK_THUMBNAILS.filter((t) => t.isFavorite);
+
   return (
     <motion.div
       variants={staggerContainer}
       initial="hidden"
       animate="visible"
-      className="p-6"
+      className="p-6 space-y-6"
     >
-      <motion.div variants={staggerChild} className="max-w-xl mx-auto text-center py-24">
-        <Heart className="h-16 w-16 mx-auto text-muted-foreground/30 mb-4" aria-hidden="true" />
-        <h1 className="text-2xl font-bold tracking-tight mb-2">Favorites</h1>
-        <p className="text-sm text-muted-foreground mb-6">
+      <motion.div variants={staggerChild}>
+        <h1 className="text-2xl font-bold tracking-tight">Favorites</h1>
+        <p className="text-sm text-muted-foreground mt-1">
           Your favorite thumbnails, saved for quick access.
         </p>
-        <Button asChild>
-          <Link href="/dashboard/generations">Browse Generations</Link>
-        </Button>
+      </motion.div>
+
+      <motion.div variants={staggerChild}>
+        {favorites.length > 0 ? (
+          <ThumbnailGrid thumbnails={favorites} />
+        ) : (
+          <EmptyState
+            icon={<Heart className="h-16 w-16" />}
+            title="No favorites yet"
+            description="Favorite a thumbnail from the generations page to see it here."
+            action={{ label: "Browse Generations", href: "/dashboard/generations" }}
+          />
+        )}
       </motion.div>
     </motion.div>
   );

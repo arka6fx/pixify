@@ -78,7 +78,7 @@ export function Hero() {
           professional results in seconds.
         </motion.p>
 
-        {/* CTA row. Primary action routes into the studio; the secondary
+        {/* CTA row. Primary action routes to the generator; the secondary
             ghost link anchors to the gallery section on the same page. */}
         <motion.div
           variants={staggerChild}

@@ -1,0 +1,22 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - img [ref=e6]
+        - generic [ref=e10]: Pixify
+      - heading "Welcome back" [level=1] [ref=e11]
+      - paragraph [ref=e12]: Sign in to your Pixify account
+    - generic [ref=e13]:
+      - button "Loading..." [disabled]
+    - generic [ref=e14]:
+      - paragraph [ref=e15]:
+        - text: Forgot password?
+        - link "Reset it" [ref=e16] [cursor=pointer]:
+          - /url: /forgot-password
+      - paragraph [ref=e17]:
+        - text: Don't have an account?
+        - link "Sign up" [ref=e18] [cursor=pointer]:
+          - /url: /register
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e24] [cursor=pointer]:
+    - img [ref=e25]
