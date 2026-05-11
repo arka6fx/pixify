@@ -19,7 +19,6 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ModeToggle } from "@/components/ui/mode-toggle";
 import { Separator } from "@/components/ui/separator";
 import { signOut, useSession } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
@@ -176,7 +175,6 @@ export function DashboardSidebar({
       </div>
 
       <div className={cn("flex items-center px-3 pb-3", collapsed ? "flex-col gap-2" : "justify-between gap-2")}>
-        <ModeToggle />
         <Button
           variant="ghost"
           size="icon"

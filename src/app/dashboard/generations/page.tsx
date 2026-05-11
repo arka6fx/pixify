@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Image as ImageIcon } from "lucide-react";
@@ -15,9 +15,15 @@ import { cn } from "@/lib/utils";
 export default function GenerationsPage() {
   const { data: session, isPending } = useSession();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+  const initialized = useRef(false);
   const [filter, setFilter] = useState<"all" | "favorites">("all");
 
   useEffect(() => {
+    if (!initialized.current) {
+      initialized.current = true;
+      setMounted(true);
+    }
     if (!isPending && !session) {
       router.replace("/login");
     }
@@ -27,9 +33,9 @@ export default function GenerationsPage() {
     ? MOCK_THUMBNAILS
     : MOCK_THUMBNAILS.filter((t) => t.isFavorite);
 
-  if (isPending) {
+  if (!mounted || isPending) {
     return (
-      <div className="h-svh flex items-center justify-center bg-background">
+      <div className="flex-1 flex items-center justify-center bg-background">
         <Spinner className="h-6 w-6 text-primary" />
       </div>
     );

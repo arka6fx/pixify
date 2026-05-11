@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -15,16 +15,22 @@ import { MOCK_THUMBNAILS } from "@/lib/types";
 export default function DashboardPage() {
   const { data: session, isPending } = useSession();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+  const initialized = useRef(false);
 
   useEffect(() => {
+    if (!initialized.current) {
+      initialized.current = true;
+      setMounted(true);
+    }
     if (!isPending && !session) {
       router.replace("/login");
     }
   }, [isPending, session, router]);
 
-  if (isPending) {
+  if (!mounted || isPending) {
     return (
-      <div className="h-svh flex items-center justify-center bg-background">
+      <div className="flex-1 flex items-center justify-center bg-background">
         <Spinner className="h-6 w-6 text-primary" />
       </div>
     );

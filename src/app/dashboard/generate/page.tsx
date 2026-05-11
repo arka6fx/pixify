@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
@@ -24,19 +24,23 @@ const MOCK_VARIATIONS = [
 export default function GeneratePage() {
   const { data: session, isPending } = useSession();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+  const initialized = useRef(false);
 
   const [prompt, setPrompt] = useState("");
   const [selectedStyle, setSelectedStyle] = useState<StylePreset | null>(null);
-
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [assetPreview, setAssetPreview] = useState<string | null>(null);
-
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [variations, setVariations] = useState<string[]>([]);
   const [selectedVariation, setSelectedVariation] = useState(0);
 
   useEffect(() => {
+    if (!initialized.current) {
+      initialized.current = true;
+      setMounted(true);
+    }
     if (!isPending && !session) {
       router.replace("/login");
     }
@@ -57,7 +61,7 @@ export default function GeneratePage() {
     }, 2000);
   }, [prompt, isGenerating]);
 
-  if (isPending) {
+  if (!mounted || isPending) {
     return (
       <div className="flex-1 flex items-center justify-center bg-background">
         <Spinner className="h-6 w-6 text-primary" />
